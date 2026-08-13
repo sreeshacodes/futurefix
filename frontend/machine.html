@@ -1,0 +1,29 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>body{font-family:sans-serif;background:#111;color:#fff}canvas{max-width:700px;margin:20px}</style>
+</head><body>
+<h1 id="title"></h1>
+<canvas id="downtime"></canvas>
+<canvas id="reject"></canvas>
+<canvas id="telemetry"></canvas>
+<script>
+const id = new URLSearchParams(location.search).get('id');
+document.getElementById('title').innerText = id + ' — Detail';
+
+async function load() {
+  const dt = await (await fetch(`http://localhost:8000/api/downtime-pareto?machine_id=${id}`)).json();
+  new Chart(document.getElementById('downtime'), {type:'bar',
+    data:{labels:dt.map(r=>r.description), datasets:[{label:'Downtime (s)', data:dt.map(r=>r.secs)}]}});
+
+  const rj = await (await fetch(`http://localhost:8000/api/reject-pareto?machine_id=${id}`)).json();
+  new Chart(document.getElementById('reject'), {type:'bar',
+    data:{labels:rj.map(r=>r.description), datasets:[{label:'Scrap count', data:rj.map(r=>r.n)}]}});
+
+  const tm = await (await fetch(`http://localhost:8000/api/telemetry?machine_id=${id}&from_ts=2026-03-02&to_ts=2026-03-09`)).json();
+  new Chart(document.getElementById('telemetry'), {type:'line',
+    data:{labels:tm.map(r=>r.t), datasets:[{label:'Spindle load %', data:tm.map(r=>r.load)}]}});
+}
+load();
+</script>
+</body></html>

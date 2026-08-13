@@ -1,0 +1,32 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>body{font-family:sans-serif;background:#111;color:#fff;font-size:20px}
+.tile{background:#222;padding:20px;margin:10px;border-radius:8px;display:inline-block;width:280px}
+.oee{font-size:48px;font-weight:bold}
+.green{color:#4caf50}.amber{color:#ffc107}.red{color:#f44336}</style>
+</head><body>
+<h1>Gear Line 3 — Overview</h1>
+<div id="tiles"></div>
+<script>
+async function load() {
+  const cfg = await (await fetch('http://localhost:8000/api/config')).json();
+  const oee = await (await fetch('http://localhost:8000/api/oee')).json();
+  const th = cfg.oee_thresholds;
+  const order = cfg.machine_order;
+  const div = document.getElementById('tiles');
+  order.forEach(id => {
+    const m = oee.find(x => x.machine_id === id);
+    if (!m) return;
+    const cls = m.oee >= th.green ? 'green' : m.oee >= th.amber ? 'amber' : 'red';
+    div.innerHTML += `<div class="tile"><h2>${id}</h2>
+      <div class="oee ${cls}">${(m.oee*100).toFixed(0)}%</div>
+      <div>Availability ${(m.availability*100).toFixed(0)}% ·
+      Performance ${(m.performance*100).toFixed(0)}% ·
+      Quality ${(m.quality*100).toFixed(0)}%</div>
+      <a href="machine.html?id=${id}" style="color:#8cf">View detail →</a></div>`;
+  });
+}
+load();
+</script>
+</body></html>
