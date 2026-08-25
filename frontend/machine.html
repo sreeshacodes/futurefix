@@ -1,29 +1,175 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+<head>
+
 <meta charset="UTF-8">
+<title>Machine Details</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>body{font-family:sans-serif;background:#111;color:#fff}canvas{max-width:700px;margin:20px}</style>
-</head><body>
-<h1 id="title"></h1>
-<canvas id="downtime"></canvas>
-<canvas id="reject"></canvas>
-<canvas id="telemetry"></canvas>
-<script>
-const id = new URLSearchParams(location.search).get('id');
-document.getElementById('title').innerText = id + ' — Detail';
 
-async function load() {
-  const dt = await (await fetch(`http://localhost:8000/api/downtime-pareto?machine_id=${id}`)).json();
-  new Chart(document.getElementById('downtime'), {type:'bar',
-    data:{labels:dt.map(r=>r.description), datasets:[{label:'Downtime (s)', data:dt.map(r=>r.secs)}]}});
+<style>
 
-  const rj = await (await fetch(`http://localhost:8000/api/reject-pareto?machine_id=${id}`)).json();
-  new Chart(document.getElementById('reject'), {type:'bar',
-    data:{labels:rj.map(r=>r.description), datasets:[{label:'Scrap count', data:rj.map(r=>r.n)}]}});
+*{box-sizing:border-box}
 
-  const tm = await (await fetch(`http://localhost:8000/api/telemetry?machine_id=${id}&from_ts=2026-03-02&to_ts=2026-03-09`)).json();
-  new Chart(document.getElementById('telemetry'), {type:'line',
-    data:{labels:tm.map(r=>r.t), datasets:[{label:'Spindle load %', data:tm.map(r=>r.load)}]}});
+body{
+  margin:0;
+  padding:25px;
+  font-family:Arial,sans-serif;
+  background:#10141b;
+  color:#e7eaee;
 }
+
+a{color:#8cf}
+
+h1{margin-bottom:5px}
+
+.subtitle{
+  color:#8993a3;
+  margin-bottom:20px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+.card{
+  background:#181f29;
+  border:1px solid #29313d;
+  border-radius:8px;
+  padding:18px;
+}
+
+.full{
+  grid-column:1/3;
+}
+
+canvas{
+  max-height:300px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<a href="index.html">← Back to Dashboard</a>
+
+<h1 id="title"></h1>
+
+<div class="subtitle">
+  Machine performance and equipment analysis
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h3>Downtime Pareto</h3>
+    <canvas id="downtime"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Scrap by Reason</h3>
+    <canvas id="reject"></canvas>
+  </div>
+
+  <div class="card full">
+    <h3>Equipment Telemetry</h3>
+    <canvas id="telemetry"></canvas>
+  </div>
+
+</div>
+
+<script>
+
+const id =
+  new URLSearchParams(location.search).get("id");
+
+document.getElementById("title").innerText =
+  id + " — Machine Details";
+
+async function getData(url){
+
+  return await (
+    await fetch("http://localhost:8000" + url)
+  ).json();
+
+}
+
+async function load(){
+
+  const dt = await getData(
+    `/api/downtime-pareto?machine_id=${id}`
+  );
+
+  new Chart(
+    document.getElementById("downtime"),
+    {
+      type:"bar",
+      data:{
+        labels:dt.map(x=>x.description),
+        datasets:[{
+          label:"Downtime minutes",
+          data:dt.map(x=>Number(x.secs)/60)
+        }]
+      }
+    }
+  );
+
+  const rj = await getData(
+    `/api/reject-pareto?machine_id=${id}`
+  );
+
+  new Chart(
+    document.getElementById("reject"),
+    {
+      type:"bar",
+      data:{
+        labels:rj.map(x=>x.description),
+        datasets:[{
+          label:"Scrap count",
+          data:rj.map(x=>Number(x.n))
+        }]
+      }
+    }
+  );
+
+  const tm = await getData(
+    `/api/telemetry?machine_id=${id}&from_ts=2026-03-02&to_ts=2026-03-09`
+  );
+
+  const sample = tm.slice(-100);
+
+  new Chart(
+    document.getElementById("telemetry"),
+    {
+      type:"line",
+      data:{
+        labels:sample.map(x=>x.t),
+        datasets:[
+          {
+            label:"Spindle Load %",
+            data:sample.map(x=>x.load)
+          },
+          {
+            label:"Temperature",
+            data:sample.map(x=>x.temp)
+          },
+          {
+            label:"Vibration",
+            data:sample.map(x=>x.vib)
+          }
+        ]
+      }
+    }
+  );
+
+}
+
 load();
+
 </script>
-</body></html>
+
+</body>
+</html>

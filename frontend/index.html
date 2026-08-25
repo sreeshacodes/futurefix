@@ -1,32 +1,1740 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+<head>
 <meta charset="UTF-8">
+
+<title>FutureFix Operations Dashboard</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>body{font-family:sans-serif;background:#111;color:#fff;font-size:20px}
-.tile{background:#222;padding:20px;margin:10px;border-radius:8px;display:inline-block;width:280px}
-.oee{font-size:48px;font-weight:bold}
-.green{color:#4caf50}.amber{color:#ffc107}.red{color:#f44336}</style>
-</head><body>
-<h1>Gear Line 3 — Overview</h1>
-<div id="tiles"></div>
-<script>
-async function load() {
-  const cfg = await (await fetch('http://localhost:8000/api/config')).json();
-  const oee = await (await fetch('http://localhost:8000/api/oee')).json();
-  const th = cfg.oee_thresholds;
-  const order = cfg.machine_order;
-  const div = document.getElementById('tiles');
-  order.forEach(id => {
-    const m = oee.find(x => x.machine_id === id);
-    if (!m) return;
-    const cls = m.oee >= th.green ? 'green' : m.oee >= th.amber ? 'amber' : 'red';
-    div.innerHTML += `<div class="tile"><h2>${id}</h2>
-      <div class="oee ${cls}">${(m.oee*100).toFixed(0)}%</div>
-      <div>Availability ${(m.availability*100).toFixed(0)}% ·
-      Performance ${(m.performance*100).toFixed(0)}% ·
-      Quality ${(m.quality*100).toFixed(0)}%</div>
-      <a href="machine.html?id=${id}" style="color:#8cf">View detail →</a></div>`;
-  });
+
+<style>
+
+*{
+    box-sizing:border-box;
 }
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f5f6f8;
+    color:#24262b;
+}
+
+/* HEADER */
+
+header{
+    height:76px;
+    background:white;
+    border-bottom:1px solid #e6e7ea;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 32px;
+    position:sticky;
+    top:0;
+    z-index:10;
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.logoBox{
+    width:40px;
+    height:40px;
+    background:#c62828;
+    color:white;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:18px;
+}
+
+.logo h1{
+    margin:0;
+    font-size:20px;
+}
+
+.logo p{
+    margin:3px 0 0;
+    color:#8b8f97;
+    font-size:12px;
+}
+
+.headerRight{
+    display:flex;
+    align-items:center;
+    gap:18px;
+}
+
+.live{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:13px;
+    color:#555;
+}
+
+.liveDot{
+    width:8px;
+    height:8px;
+    background:#35a853;
+    border-radius:50%;
+}
+
+button{
+    border:0;
+    cursor:pointer;
+}
+
+.settingsBtn{
+    background:#c62828;
+    color:white;
+    padding:10px 16px;
+    border-radius:8px;
+    font-weight:bold;
+}
+
+.settingsBtn:hover{
+    background:#a91f1f;
+}
+
+/* MAIN */
+
+.container{
+    max-width:1450px;
+    margin:auto;
+    padding:28px 32px 50px;
+}
+
+.pageTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:end;
+    margin-bottom:22px;
+}
+
+.pageTop h2{
+    margin:0;
+    font-size:25px;
+}
+
+.pageTop p{
+    margin:6px 0 0;
+    color:#7c818a;
+    font-size:13px;
+}
+
+.dateBox{
+    background:white;
+    border:1px solid #e1e3e7;
+    padding:10px 14px;
+    border-radius:8px;
+    font-size:13px;
+}
+
+/* KPI */
+
+.kpis{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+}
+
+.kpi{
+    background:white;
+    border:1px solid #e4e5e8;
+    border-radius:14px;
+    padding:20px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 3px 12px rgba(30,30,30,.04);
+}
+
+.kpi::after{
+    content:"";
+    position:absolute;
+    width:75px;
+    height:75px;
+    background:#c62828;
+    opacity:.06;
+    border-radius:50%;
+    right:-20px;
+    top:-20px;
+}
+
+.kpiTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.kpiTitle{
+    color:#777d86;
+    font-size:12px;
+    font-weight:bold;
+    letter-spacing:.5px;
+}
+
+.kpiIcon{
+    width:30px;
+    height:30px;
+    border-radius:8px;
+    background:#fbeaea;
+    color:#c62828;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+}
+
+.kpiValue{
+    font-size:30px;
+    font-weight:bold;
+    margin-top:12px;
+}
+
+.kpiBottom{
+    margin-top:9px;
+    font-size:12px;
+    color:#7d828a;
+}
+
+.up{
+    color:#299b55;
+    font-weight:bold;
+}
+
+.down{
+    color:#c62828;
+    font-weight:bold;
+}
+
+/* LAYOUT */
+
+.row{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:18px;
+    margin-top:18px;
+}
+
+.rowEqual{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:18px;
+}
+
+.card{
+    background:white;
+    border:1px solid #e4e5e8;
+    border-radius:14px;
+    padding:20px;
+    box-shadow:0 3px 12px rgba(30,30,30,.04);
+}
+
+.cardHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.cardTitle{
+    font-size:15px;
+    font-weight:bold;
+}
+
+.cardSub{
+    font-size:11px;
+    color:#92969d;
+    margin-top:4px;
+}
+
+.badge{
+    background:#fbeaea;
+    color:#c62828;
+    padding:6px 9px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:bold;
+}
+
+/* MACHINE STATUS */
+
+.machineItem{
+    display:grid;
+    grid-template-columns:1.5fr .8fr .8fr;
+    align-items:center;
+    padding:13px 0;
+    border-bottom:1px solid #eee;
+}
+
+.machineItem:last-child{
+    border-bottom:0;
+}
+
+.machineName{
+    font-weight:bold;
+    font-size:13px;
+}
+
+.machineState{
+    font-size:11px;
+    color:#666;
+    margin-top:4px;
+}
+
+.status{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:11px;
+}
+
+.statusDot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#35a853;
+}
+
+.oeeNumber{
+    text-align:right;
+    font-weight:bold;
+    color:#c62828;
+}
+
+/* INSIGHT BOXES */
+
+.insights{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-top:15px;
+}
+
+.insight{
+    background:#fafafa;
+    border-radius:10px;
+    padding:13px;
+    border-left:3px solid #c62828;
+}
+
+.insightTitle{
+    font-size:11px;
+    color:#8a8f96;
+}
+
+.insightValue{
+    font-size:18px;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+/* EVENTS */
+
+.event{
+    display:flex;
+    gap:12px;
+    padding:13px 0;
+    border-bottom:1px solid #eee;
+}
+
+.event:last-child{
+    border-bottom:0;
+}
+
+.eventIcon{
+    width:30px;
+    height:30px;
+    border-radius:8px;
+    background:#fbeaea;
+    color:#c62828;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.eventText{
+    font-size:12px;
+}
+
+.eventTime{
+    color:#9a9da3;
+    font-size:10px;
+    margin-top:4px;
+}
+
+/* SETTINGS */
+
+#settings{
+    display:none;
+    position:fixed;
+    right:25px;
+    top:88px;
+    width:340px;
+    background:white;
+    border:1px solid #ddd;
+    border-radius:14px;
+    padding:22px;
+    z-index:20;
+    box-shadow:0 15px 40px rgba(0,0,0,.18);
+}
+
+#settings h2{
+    margin-top:0;
+}
+
+#settings label{
+    font-size:12px;
+    color:#666;
+    display:block;
+    margin-top:13px;
+}
+
+#settings input{
+    width:100%;
+    padding:10px;
+    margin-top:6px;
+    border:1px solid #ddd;
+    border-radius:7px;
+}
+
+.saveBtn{
+    margin-top:18px;
+    width:100%;
+    background:#c62828;
+    color:white;
+    padding:11px;
+    border-radius:7px;
+    font-weight:bold;
+}
+
+.closeBtn{
+    margin-top:8px;
+    width:100%;
+    background:#eee;
+    padding:10px;
+    border-radius:7px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px){
+
+    .kpis{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .row,
+    .rowEqual{
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<!-- HEADER -->
+
+<header>
+
+    <div class="logo">
+
+        <div class="logoBox">
+            FF
+        </div>
+
+        <div>
+            <h1>FutureFix</h1>
+            <p>Manufacturing Intelligence Platform</p>
+        </div>
+
+    </div>
+
+
+    <div class="headerRight">
+
+        <div class="live">
+            <span class="liveDot"></span>
+            Live monitoring
+        </div>
+
+        <button
+            class="settingsBtn"
+            onclick="showSettings()">
+            ⚙ Settings
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- MAIN -->
+
+<div class="container">
+
+
+    <div class="pageTop">
+
+        <div>
+            <h2>Operations Overview</h2>
+
+            <p>
+                Gear Line 3 · Production performance and equipment health
+            </p>
+        </div>
+
+        <div class="dateBox">
+            Last 7 days ▾
+        </div>
+
+    </div>
+
+
+    <!-- KPI CARDS -->
+
+    <div class="kpis">
+
+
+        <div class="kpi">
+
+            <div class="kpiTop">
+
+                <div class="kpiTitle">
+                    OVERALL EQUIPMENT EFFECTIVENESS
+                </div>
+
+                <div class="kpiIcon">
+                    O
+                </div>
+
+            </div>
+
+            <div
+                id="oee"
+                class="kpiValue">
+                --
+            </div>
+
+            <div class="kpiBottom">
+                Target 85% ·
+                <span class="up">Operational</span>
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+            <div class="kpiTop">
+
+                <div class="kpiTitle">
+                    AVAILABILITY
+                </div>
+
+                <div class="kpiIcon">
+                    A
+                </div>
+
+            </div>
+
+            <div
+                id="availability"
+                class="kpiValue">
+                --
+            </div>
+
+            <div class="kpiBottom">
+                Machine uptime
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+            <div class="kpiTop">
+
+                <div class="kpiTitle">
+                    PERFORMANCE
+                </div>
+
+                <div class="kpiIcon">
+                    P
+                </div>
+
+            </div>
+
+            <div
+                id="performance"
+                class="kpiValue">
+                --
+            </div>
+
+            <div class="kpiBottom">
+                Production efficiency
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+            <div class="kpiTop">
+
+                <div class="kpiTitle">
+                    QUALITY
+                </div>
+
+                <div class="kpiIcon">
+                    Q
+                </div>
+
+            </div>
+
+            <div
+                id="quality"
+                class="kpiValue">
+                --
+            </div>
+
+            <div class="kpiBottom">
+                First-pass quality
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- MAIN ANALYTICS -->
+
+    <div class="row">
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+                    <div class="cardTitle">
+                        Machine OEE Comparison
+                    </div>
+
+                    <div class="cardSub">
+                        Current performance across the production line
+                    </div>
+                </div>
+
+                <div class="badge">
+                    LIVE
+                </div>
+
+            </div>
+
+            <canvas id="machineChart"></canvas>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+                    <div class="cardTitle">
+                        Machine Status
+                    </div>
+
+                    <div class="cardSub">
+                        Current line condition
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="machines"></div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ANALYTICS -->
+
+    <div class="rowEqual">
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+
+                    <div class="cardTitle">
+                        Downtime Analysis
+                    </div>
+
+                    <div class="cardSub">
+                        Total downtime by machine
+                    </div>
+
+                </div>
+
+                <div class="badge">
+                    MINUTES
+                </div>
+
+            </div>
+
+            <canvas id="downtimeChart"></canvas>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+
+                    <div class="cardTitle">
+                        Scrap & Quality Analysis
+                    </div>
+
+                    <div class="cardSub">
+                        Rejected production by machine
+                    </div>
+
+                </div>
+
+                <div class="badge">
+                    QUALITY
+                </div>
+
+            </div>
+
+            <canvas id="rejectChart"></canvas>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- EQUIPMENT HEALTH -->
+
+    <div class="row">
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+
+                    <div class="cardTitle">
+                        Equipment Health
+                    </div>
+
+                    <div class="cardSub">
+                        Temperature and vibration telemetry
+                    </div>
+
+                </div>
+
+                <div class="badge">
+                    TELEMETRY
+                </div>
+
+            </div>
+
+            <canvas id="healthChart"></canvas>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="cardHeader">
+
+                <div>
+
+                    <div class="cardTitle">
+                        Production Insights
+                    </div>
+
+                    <div class="cardSub">
+                        Quick operational indicators
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="insights">
+
+                <div class="insight">
+
+                    <div class="insightTitle">
+                        BEST MACHINE
+                    </div>
+
+                    <div
+                        id="bestMachine"
+                        class="insightValue">
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="insight">
+
+                    <div class="insightTitle">
+                        LINE STATUS
+                    </div>
+
+                    <div
+                        id="lineStatus"
+                        class="insightValue">
+                        Normal
+                    </div>
+
+                </div>
+
+
+                <div class="insight">
+
+                    <div class="insightTitle">
+                        MACHINES
+                    </div>
+
+                    <div
+                        id="machineCount"
+                        class="insightValue">
+                        --
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div style="margin-top:20px">
+
+                <div class="cardSub">
+                    Operational notes
+                </div>
+
+                <div class="event">
+
+                    <div class="eventIcon">
+                        ✓
+                    </div>
+
+                    <div class="eventText">
+
+                        Dashboard connected
+
+                        <div class="eventTime">
+                            Live system
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="event">
+
+                    <div class="eventIcon">
+                        !
+                    </div>
+
+                    <div class="eventText">
+
+                        Monitor machines below target
+
+                        <div class="eventTime">
+                            OEE threshold monitoring
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="event">
+
+                    <div class="eventIcon">
+                        i
+                    </div>
+
+                    <div class="eventText">
+
+                        Telemetry data available
+
+                        <div class="eventTime">
+                            Equipment health
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<!-- SETTINGS PANEL -->
+
+<div id="settings">
+
+    <h2>Dashboard Settings</h2>
+
+    <p style="color:#777;font-size:12px">
+        Configuration is saved through the FutureFix API.
+    </p>
+
+
+    <label>
+        Green OEE threshold
+    </label>
+
+    <input
+        id="green"
+        type="number"
+        step="0.01">
+
+
+    <label>
+        Amber OEE threshold
+    </label>
+
+    <input
+        id="amber"
+        type="number"
+        step="0.01">
+
+
+    <label>
+        Machine order
+    </label>
+
+    <input
+        id="machinesInput"
+        type="text"
+        placeholder="HOB-01,HOB-02,SHV-01">
+
+
+    <button
+        class="saveBtn"
+        onclick="saveSettings()">
+
+        Save Configuration
+
+    </button>
+
+
+    <button
+        class="closeBtn"
+        onclick="closeSettings()">
+
+        Cancel
+
+    </button>
+
+</div>
+
+
+<script>
+
+
+let config = {};
+
+let charts = [];
+
+
+/* API */
+
+async function api(url){
+
+    const response =
+        await fetch(
+            "http://localhost:8000" + url
+        );
+
+    return await response.json();
+
+}
+
+
+/* FORMAT */
+
+function percent(value){
+
+    return (
+        Number(value || 0) * 100
+    ).toFixed(1) + "%";
+
+}
+
+
+/* STATUS */
+
+function statusClass(value){
+
+    if(
+        config.oee_thresholds &&
+        value >= config.oee_thresholds.green
+    ){
+        return "up";
+    }
+
+    if(
+        config.oee_thresholds &&
+        value >= config.oee_thresholds.amber
+    ){
+        return "";
+    }
+
+    return "down";
+
+}
+
+
+/* LOAD DASHBOARD */
+
+async function load(){
+
+    try{
+
+        config =
+            await api("/api/config");
+
+
+        document.getElementById("green").value =
+            config.oee_thresholds.green;
+
+
+        document.getElementById("amber").value =
+            config.oee_thresholds.amber;
+
+
+        document.getElementById("machinesInput").value =
+            config.machine_order.join(",");
+
+
+        const data =
+            await api("/api/oee");
+
+
+        if(!data.length){
+
+            return;
+
+        }
+
+
+        const avg = key => {
+
+            return data.reduce(
+                (sum,item) =>
+                    sum + Number(item[key] || 0),
+                0
+            ) / data.length;
+
+        };
+
+
+        const lineOee =
+            avg("oee");
+
+
+        document.getElementById("oee").innerText =
+            percent(lineOee);
+
+
+        document.getElementById("availability").innerText =
+            percent(avg("availability"));
+
+
+        document.getElementById("performance").innerText =
+            percent(avg("performance"));
+
+
+        document.getElementById("quality").innerText =
+            percent(avg("quality"));
+
+
+        document.getElementById("machineCount").innerText =
+            data.length;
+
+
+        const best =
+            [...data].sort(
+                (a,b) =>
+                    Number(b.oee) -
+                    Number(a.oee)
+            )[0];
+
+
+        if(best){
+
+            document.getElementById("bestMachine").innerText =
+                best.machine_id;
+
+        }
+
+
+        if(lineOee >= config.oee_thresholds.green){
+
+            document.getElementById("lineStatus").innerText =
+                "Healthy";
+
+        }
+        else if(lineOee >= config.oee_thresholds.amber){
+
+            document.getElementById("lineStatus").innerText =
+                "Watch";
+
+        }
+        else{
+
+            document.getElementById("lineStatus").innerText =
+                "Attention";
+
+        }
+
+
+        drawMachines(data);
+
+        drawMachineChart(data);
+
+        drawDowntime();
+
+        drawReject();
+
+        drawHealth();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* MACHINES */
+
+function drawMachines(data){
+
+    const box =
+        document.getElementById("machines");
+
+    box.innerHTML = "";
+
+
+    config.machine_order.forEach(id => {
+
+        const machine =
+            data.find(
+                item =>
+                    item.machine_id === id
+            );
+
+
+        if(!machine){
+
+            return;
+
+        }
+
+
+        const good =
+            machine.oee >=
+            config.oee_thresholds.green;
+
+
+        box.innerHTML += `
+
+            <div class="machineItem">
+
+                <div>
+
+                    <div class="machineName">
+                        ${id}
+                    </div>
+
+                    <div class="machineState">
+                        Production monitoring
+                    </div>
+
+                </div>
+
+
+                <div class="status">
+
+                    <span
+                        class="statusDot"
+                        style="background:${
+                            good
+                            ? '#35a853'
+                            : '#c62828'
+                        }">
+                    </span>
+
+                    ${good ? "Healthy" : "Monitor"}
+
+                </div>
+
+
+                <div class="oeeNumber">
+
+                    ${percent(machine.oee)}
+
+                </div>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+
+/* MACHINE CHART */
+
+function drawMachineChart(data){
+
+    const ctx =
+        document.getElementById(
+            "machineChart"
+        );
+
+
+    charts.push(
+
+        new Chart(
+            ctx,
+            {
+
+                type:"bar",
+
+                data:{
+
+                    labels:
+                        data.map(
+                            x =>
+                                x.machine_id
+                        ),
+
+                    datasets:[{
+
+                        label:"OEE %",
+
+                        data:
+                            data.map(
+                                x =>
+                                    Number(x.oee) * 100
+                            ),
+
+                        borderRadius:8,
+
+                        backgroundColor:"#c62828"
+
+                    }]
+
+                },
+
+                options:{
+
+                    plugins:{
+
+                        legend:{
+                            display:false
+                        }
+
+                    },
+
+                    scales:{
+
+                        y:{
+
+                            beginAtZero:true,
+
+                            max:100,
+
+                            ticks:{
+                                callback:
+                                    value =>
+                                        value + "%"
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        )
+
+    );
+
+}
+
+
+/* DOWNTIME */
+
+async function drawDowntime(){
+
+    const labels = [];
+
+    const values = [];
+
+
+    for(
+        const id
+        of config.machine_order
+    ){
+
+        const data =
+            await api(
+                "/api/downtime-pareto?machine_id="
+                + id
+            );
+
+
+        labels.push(id);
+
+
+        values.push(
+
+            data.reduce(
+                (sum,item) =>
+                    sum +
+                    Number(item.secs || 0),
+                0
+            ) / 60
+
+        );
+
+    }
+
+
+    charts.push(
+
+        new Chart(
+
+            document.getElementById(
+                "downtimeChart"
+            ),
+
+            {
+
+                type:"bar",
+
+                data:{
+
+                    labels,
+
+                    datasets:[{
+
+                        label:
+                            "Downtime minutes",
+
+                        data:values,
+
+                        backgroundColor:
+                            "#d94a4a",
+
+                        borderRadius:7
+
+                    }]
+
+                },
+
+                options:{
+
+                    plugins:{
+                        legend:{
+                            display:false
+                        }
+                    },
+
+                    scales:{
+                        y:{
+                            beginAtZero:true
+                        }
+                    }
+
+                }
+
+            }
+
+        )
+
+    );
+
+}
+
+
+/* REJECT */
+
+async function drawReject(){
+
+    const labels = [];
+
+    const values = [];
+
+
+    for(
+        const id
+        of config.machine_order
+    ){
+
+        const data =
+            await api(
+                "/api/reject-pareto?machine_id="
+                + id
+            );
+
+
+        labels.push(id);
+
+
+        values.push(
+
+            data.reduce(
+                (sum,item) =>
+                    sum +
+                    Number(item.n || 0),
+                0
+            )
+
+        );
+
+    }
+
+
+    charts.push(
+
+        new Chart(
+
+            document.getElementById(
+                "rejectChart"
+            ),
+
+            {
+
+                type:"doughnut",
+
+                data:{
+
+                    labels,
+
+                    datasets:[{
+
+                        label:"Scrap",
+
+                        data:values,
+
+                        backgroundColor:[
+                            "#c62828",
+                            "#e45b5b",
+                            "#f08b8b"
+                        ]
+
+                    }]
+
+                },
+
+                options:{
+
+                    cutout:"65%",
+
+                    plugins:{
+
+                        legend:{
+                            position:"bottom"
+                        }
+
+                    }
+
+                }
+
+            }
+
+        )
+
+    );
+
+}
+
+
+/* HEALTH */
+
+async function drawHealth(){
+
+    const id =
+        config.machine_order[0];
+
+
+    if(!id){
+
+        return;
+
+    }
+
+
+    const data =
+        await api(
+
+            "/api/telemetry?machine_id="
+            + id +
+            "&from_ts=2026-03-02" +
+            "&to_ts=2026-03-09"
+
+        );
+
+
+    const sample =
+        data.slice(-50);
+
+
+    charts.push(
+
+        new Chart(
+
+            document.getElementById(
+                "healthChart"
+            ),
+
+            {
+
+                type:"line",
+
+                data:{
+
+                    labels:
+                        sample.map(
+                            x => x.t
+                        ),
+
+                    datasets:[
+
+                        {
+
+                            label:
+                                "Temperature",
+
+                            data:
+                                sample.map(
+                                    x => x.temp
+                                ),
+
+                            borderColor:
+                                "#c62828",
+
+                            backgroundColor:
+                                "rgba(198,40,40,.08)",
+
+                            fill:true,
+
+                            tension:.35
+
+                        },
+
+                        {
+
+                            label:
+                                "Vibration",
+
+                            data:
+                                sample.map(
+                                    x => x.vib
+                                ),
+
+                            borderColor:
+                                "#555",
+
+                            tension:.35
+
+                        }
+
+                    ]
+
+                },
+
+                options:{
+
+                    interaction:{
+                        mode:"index",
+                        intersect:false
+                    },
+
+                    plugins:{
+                        legend:{
+                            position:"bottom"
+                        }
+                    }
+
+                }
+
+            }
+
+        )
+
+    );
+
+}
+
+
+/* SETTINGS */
+
+function showSettings(){
+
+    document.getElementById(
+        "settings"
+    ).style.display = "block";
+
+}
+
+
+function closeSettings(){
+
+    document.getElementById(
+        "settings"
+    ).style.display = "none";
+
+}
+
+
+async function saveSettings(){
+
+    const green =
+        Number(
+            document.getElementById(
+                "green"
+            ).value
+        );
+
+
+    const amber =
+        Number(
+            document.getElementById(
+                "amber"
+            ).value
+        );
+
+
+    const machines =
+        document.getElementById(
+            "machinesInput"
+        ).value
+        .split(",")
+        .map(
+            x => x.trim()
+        )
+        .filter(Boolean);
+
+
+    await fetch(
+
+        "http://localhost:8000/api/config/oee_thresholds",
+
+        {
+
+            method:"PUT",
+
+            headers:{
+                "Content-Type":
+                    "application/json"
+            },
+
+            body:JSON.stringify({
+
+                green,
+                amber
+
+            })
+
+        }
+
+    );
+
+
+    await fetch(
+
+        "http://localhost:8000/api/config/machine_order",
+
+        {
+
+            method:"PUT",
+
+            headers:{
+                "Content-Type":
+                    "application/json"
+            },
+
+            body:JSON.stringify(
+                machines
+            )
+
+        }
+
+    );
+
+
+    alert(
+        "Configuration saved successfully!"
+    );
+
+
+    closeSettings();
+
+
+    location.reload();
+
+}
+
+
+/* START */
+
 load();
+
 </script>
-</body></html>
+
+</body>
+</html>
